@@ -28,13 +28,17 @@ app.use(express.json());
 //     res.send('server is live');
 // });
 
-app.get('/users/:userId/posts/:postId',(req , res) => {
+app.get('/query',(req , res) => {
     
-    const {userId , postId} = req.params;
-    const respond = Number(userId )+ Number(postId);
-    res.send(`its works', ${respond}`);
-    console.log(respond)
-})
+    const {userId , status} = req.query;
+    // const respond = Number(userId )+ Number(postId);
+    res.send(`its works poda pulle, user id is ${userId} , status ${status}`);
+    console.log(userId , status)
+});
+app.get('/params/:id/name/:na',(req , res) => {
+    res.send(req.params);
+    console.log(req.params)
+});
 
 // port init
 const PORT = process.env.PORT || 5000;
