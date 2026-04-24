@@ -32,7 +32,7 @@ app.use(express.static('public'));
 
 // test route
 app.get("/",(req , res) => {
-    res.send('server is live');
+    res.render('login');
 });
 
 // app.get('/query',(req , res) => {
