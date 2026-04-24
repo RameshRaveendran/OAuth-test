@@ -20,8 +20,13 @@ connectDB();
 const app = express();
 
 // test route
-app.get("/",(req , res) => {
-    res.send('server is live');
+// app.get("/",(req , res) => {
+//     res.send('server is live');
+// });
+
+app.post('/test',(req , res) => {
+    res.send('its works')
+    console.log(req.body)
 })
 
 // port init
