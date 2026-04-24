@@ -1,8 +1,17 @@
 // get the environment variable
 require("dotenv").config();
 
-// local requirements
+// installed requirements
 const express = require("express");
+
+// local requirements
+const connectDB = require('./config/db');
+
+
+
+
+// db connection
+connectDB();
 
 
 
