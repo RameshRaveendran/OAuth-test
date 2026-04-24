@@ -1,14 +1,714 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Login</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SYSTEM // ACCESS PORTAL</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cyan: #00f5ff;
+  --green: #00ff88;
+  --red: #ff003c;
+  --purple: #7b00ff;
+  --dark: #020810;
+  --panel: rgba(0,20,40,0.88);
+  --border: rgba(0,245,255,0.25);
+  --glow: 0 0 20px rgba(0,245,255,0.5);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;}
+body{background:var(--dark);font-family:'Share Tech Mono',monospace;color:#fff;cursor:crosshair;}
+
+/* ═══ LOADING SCREEN ═══ */
+#loader{
+  position:fixed;inset:0;background:#000;z-index:9999;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
+  transition:opacity 0.8s ease;
+}
+#loader.hide{opacity:0;pointer-events:none;}
+.loader-logo{
+  font-family:'Orbitron',sans-serif;font-size:48px;font-weight:900;
+  color:var(--cyan);text-shadow:0 0 40px var(--cyan),0 0 80px var(--cyan);
+  letter-spacing:8px;animation:logoGlitch 0.1s infinite;
+}
+@keyframes logoGlitch{
+  0%,90%,100%{transform:translate(0);filter:none;}
+  92%{transform:translate(-3px,1px);filter:hue-rotate(90deg);}
+  94%{transform:translate(3px,-1px);filter:hue-rotate(-90deg);}
+  96%{transform:translate(-1px,2px);color:#ff003c;}
+}
+.loader-bar-wrap{width:320px;height:3px;background:rgba(0,245,255,0.1);position:relative;overflow:hidden;}
+.loader-bar{height:100%;background:linear-gradient(90deg,var(--purple),var(--cyan),var(--green));width:0%;transition:width 0.1s linear;box-shadow:0 0 15px var(--cyan);}
+.loader-text{font-size:11px;letter-spacing:4px;color:rgba(0,245,255,0.7);height:16px;}
+.loader-pct{font-family:'Orbitron',sans-serif;font-size:42px;font-weight:900;color:rgba(0,245,255,0.15);margin-top:10px;}
+.scanline-loader{
+  position:absolute;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,245,255,0.02) 2px,rgba(0,245,255,0.02) 4px);
+  pointer-events:none;
+}
+
+/* ═══ MAIN SCENE ═══ */
+#main{opacity:0;transition:opacity 1s ease;position:relative;width:100vw;height:100vh;}
+#main.show{opacity:1;}
+
+/* Matrix rain canvas */
+#matrix{position:fixed;inset:0;z-index:0;opacity:0.55;}
+
+/* Scanlines */
+.scanlines{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.07) 2px,rgba(0,0,0,0.07) 4px);}
+
+/* Grid floor */
+.grid-bg{
+  position:fixed;inset:0;z-index:1;
+  background-image:linear-gradient(rgba(0,245,255,0.03) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(0,245,255,0.03) 1px,transparent 1px);
+  background-size:50px 50px;
+  animation:gridDrift 25s linear infinite;
+}
+@keyframes gridDrift{
+  0%{transform:perspective(600px) rotateX(12deg) translateY(0);}
+  100%{transform:perspective(600px) rotateX(12deg) translateY(50px);}
+}
+
+/* Orbs */
+.orb{position:fixed;border-radius:50%;filter:blur(90px);pointer-events:none;z-index:0;}
+.orb1{width:500px;height:500px;background:#00f5ff;opacity:0.07;top:-150px;left:-150px;animation:oFloat 10s ease-in-out infinite;}
+.orb2{width:400px;height:400px;background:#7b00ff;opacity:0.08;bottom:-100px;right:-100px;animation:oFloat 12s ease-in-out infinite reverse;}
+.orb3{width:250px;height:250px;background:#00ff88;opacity:0.06;top:40%;right:15%;animation:oFloat 8s ease-in-out infinite 2s;}
+@keyframes oFloat{0%,100%{transform:translateY(0) scale(1);}50%{transform:translateY(-40px) scale(1.08);}}
+
+/* Corners & HUD chrome */
+.corner{position:fixed;width:70px;height:70px;z-index:5;}
+.corner::before,.corner::after{content:'';position:absolute;background:var(--cyan);box-shadow:0 0 8px var(--cyan);}
+.corner::before{width:100%;height:2px;top:0;left:0;}
+.corner::after{width:2px;height:100%;top:0;left:0;}
+.tl{top:18px;left:18px;}
+.tr{top:18px;right:18px;transform:scaleX(-1);}
+.bl{bottom:18px;left:18px;transform:scaleY(-1);}
+.br{bottom:18px;right:18px;transform:scale(-1);}
+
+.side-line{position:fixed;top:0;bottom:0;width:2px;z-index:4;}
+.side-line.l{left:28px;background:linear-gradient(to bottom,transparent,var(--cyan),transparent);animation:sideGlow 4s ease-in-out infinite;}
+.side-line.r{right:28px;background:linear-gradient(to bottom,transparent,var(--cyan),transparent);animation:sideGlow 4s ease-in-out infinite 2s;}
+@keyframes sideGlow{0%,100%{opacity:0.3;}50%{opacity:1;}}
+
+/* Top & bottom bars */
+.topbar{
+  position:fixed;top:0;left:0;right:0;height:42px;
+  background:rgba(0,10,25,0.95);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 110px;z-index:10;font-size:11px;letter-spacing:2px;color:rgba(0,245,255,0.55);
+}
+.pulse-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:8px;animation:pdot 1.4s infinite;box-shadow:0 0 6px var(--green);}
+@keyframes pdot{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.2;transform:scale(0.7);}}
+
+.bottombar{
+  position:fixed;bottom:0;left:0;right:0;height:34px;
+  background:rgba(0,10,25,0.95);border-top:1px solid var(--border);
+  display:flex;align-items:center;padding:0 110px;z-index:10;
+  font-size:10px;letter-spacing:2px;color:rgba(0,245,255,0.35);overflow:hidden;
+}
+.ticker{white-space:nowrap;animation:tick 28s linear infinite;}
+@keyframes tick{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+
+/* ═══ GLOBE CANVAS ═══ */
+#globeWrap{
+  position:fixed;right:5%;top:50%;transform:translateY(-50%);
+  z-index:6;opacity:0.85;
+}
+#globe{display:block;}
+
+/* ═══ SCENE LAYOUT ═══ */
+.scene{
+  position:relative;z-index:8;
+  width:100vw;height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  gap:50px;
+  padding-top:42px;padding-bottom:34px;
+}
+
+/* ═══ ROBOT ═══ */
+.robot-wrap{
+  flex-shrink:0;
+  filter:drop-shadow(0 0 18px rgba(0,245,255,0.6));
+}
+/* Walking animation: body bobs, arms/legs swing */
+.robot-body-group{animation:bodyBob 0.5s ease-in-out infinite alternate;}
+@keyframes bodyBob{0%{transform:translateY(0);}100%{transform:translateY(-6px);}}
+.arm-l{transform-origin:35px 5px;animation:armSwingL 0.5s ease-in-out infinite alternate;}
+.arm-r{transform-origin:5px 5px;animation:armSwingR 0.5s ease-in-out infinite alternate;}
+@keyframes armSwingL{0%{transform:rotate(-18deg);}100%{transform:rotate(12deg);}}
+@keyframes armSwingR{0%{transform:rotate(12deg);}100%{transform:rotate(-18deg);}}
+.leg-l{transform-origin:16px 0;animation:legSwingL 0.5s ease-in-out infinite alternate;}
+.leg-r{transform-origin:16px 0;animation:legSwingR 0.5s ease-in-out infinite alternate;}
+@keyframes legSwingL{0%{transform:rotate(-14deg);}100%{transform:rotate(14deg);}}
+@keyframes legSwingR{0%{transform:rotate(14deg);}100%{transform:rotate(-14deg);}}
+.robot-float{animation:robotFloat 3s ease-in-out infinite;}
+@keyframes robotFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
+.eye-glow{animation:eyePulse 2s ease-in-out infinite;}
+@keyframes eyePulse{0%,100%{opacity:0.5;}50%{opacity:1;fill:#00f5ff;}}
+.core-pulse{animation:corePulse 1.5s ease-in-out infinite;}
+@keyframes corePulse{0%,100%{r:5;opacity:0.8;}50%{r:9;opacity:1;}}
+.antenna-blink{animation:antBlink 1.2s steps(1) infinite;}
+@keyframes antBlink{0%,49%{opacity:1;}50%,100%{opacity:0.1;}}
+
+/* ═══ LOGIN PANEL ═══ */
+.panel{
+  width:390px;flex-shrink:0;
+  background:var(--panel);
+  border:1px solid var(--border);
+  backdrop-filter:blur(24px);
+  clip-path:polygon(0 0,calc(100% - 22px) 0,100% 22px,100% 100%,22px 100%,0 calc(100% - 22px));
+  position:relative;
+  animation:panelIn 0.8s cubic-bezier(0.16,1,0.3,1) both 0.3s;
+}
+@keyframes panelIn{
+  0%{opacity:0;transform:translateY(40px) scale(0.95);}
+  100%{opacity:1;transform:translateY(0) scale(1);}
+}
+.panel::before{
+  content:'';position:absolute;inset:-1px;z-index:-1;
+  background:linear-gradient(135deg,var(--cyan),transparent 50%,rgba(123,0,255,0.4));
+  clip-path:polygon(0 0,calc(100% - 22px) 0,100% 22px,100% 100%,22px 100%,0 calc(100% - 22px));
+}
+.ph{padding:22px 26px 18px;border-bottom:1px solid var(--border);position:relative;}
+.ph::after{content:'';position:absolute;bottom:-1px;left:26px;width:70px;height:2px;background:var(--cyan);box-shadow:var(--glow);}
+.sys-lbl{font-size:10px;letter-spacing:4px;color:rgba(0,245,255,0.5);margin-bottom:7px;}
+.ptitle{font-family:'Orbitron',sans-serif;font-size:21px;font-weight:900;letter-spacing:3px;line-height:1;}
+.ptitle span{color:var(--cyan);text-shadow:var(--glow);}
+.cursor-b::after{content:'_';animation:pdot 1s infinite;}
+.pb{padding:26px;}
+.welcome{
+  font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:500;
+  color:rgba(255,255,255,0.75);margin-bottom:22px;padding:11px 13px;
+  background:rgba(0,245,255,0.05);border-left:2px solid var(--cyan);
+}
+.welcome .tag{display:block;font-size:10px;font-family:'Share Tech Mono',monospace;letter-spacing:3px;color:rgba(0,245,255,0.7);margin-bottom:4px;}
+.sbars{display:flex;flex-direction:column;gap:8px;margin-bottom:26px;}
+.sbar{display:flex;align-items:center;gap:10px;font-size:10px;color:rgba(0,245,255,0.5);letter-spacing:2px;}
+.sbar .track{flex:1;height:2px;background:rgba(0,245,255,0.08);overflow:hidden;}
+.sbar .fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--green));animation:fillAnim 1.5s ease-out forwards;width:0;}
+@keyframes fillAnim{to{width:var(--w,70%);}}
+.sbar .val{min-width:45px;text-align:right;color:var(--green);font-size:10px;}
+.gbtn{
+  display:flex;align-items:center;justify-content:center;gap:14px;
+  width:100%;padding:15px;background:transparent;
+  border:1px solid rgba(0,245,255,0.4);color:#fff;
+  font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:3px;
+  text-decoration:none;cursor:pointer;position:relative;overflow:hidden;
+  clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));
+  transition:all 0.3s;text-transform:uppercase;
+}
+.gbtn::after{
+  content:'';position:absolute;top:0;left:-120%;width:60px;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(0,245,255,0.35),transparent);
+  animation:sweep 2.5s linear infinite;
+}
+@keyframes sweep{0%{left:-120%;}100%{left:220%;}}
+.gbtn:hover{border-color:var(--cyan);box-shadow:0 0 35px rgba(0,245,255,0.3),inset 0 0 20px rgba(0,245,255,0.05);color:var(--cyan);transform:translateY(-2px);}
+.gbtn:active{transform:scale(0.97);}
+.gico{width:22px;height:22px;flex-shrink:0;}
+.pf{padding:14px 26px;border-top:1px solid var(--border);font-size:10px;color:rgba(0,245,255,0.3);letter-spacing:2px;display:flex;justify-content:space-between;}
+
+/* ═══ RIGHT INFO ═══ */
+.rinfo{width:160px;flex-shrink:0;display:flex;flex-direction:column;gap:20px;}
+.iblock{border-left:2px solid rgba(0,245,255,0.2);padding-left:12px;}
+.ilbl{font-size:9px;letter-spacing:3px;color:rgba(0,245,255,0.4);margin-bottom:3px;text-transform:uppercase;}
+.ival{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:rgba(0,245,255,0.9);}
+.ihex{font-size:10px;color:rgba(0,255,136,0.5);margin-top:2px;}
+.counter{font-family:'Orbitron',sans-serif;font-size:28px;font-weight:900;color:var(--cyan);text-shadow:var(--glow);line-height:1;}
+
+/* Glitch effect on hover */
+.gbtn:hover .glitch-text{animation:glitch 0.3s steps(1) infinite;}
+@keyframes glitch{
+  0%{clip-path:inset(0 0 95% 0);transform:translate(-2px,0);}
+  20%{clip-path:inset(30% 0 50% 0);transform:translate(2px,0);}
+  40%{clip-path:inset(60% 0 20% 0);transform:translate(-1px,0);}
+  60%{clip-path:inset(80% 0 5% 0);transform:translate(1px,0);}
+  80%,100%{clip-path:inset(0);transform:translate(0);}
+}
+
+/* Sound toggle */
+.sound-btn{
+  position:fixed;top:50px;right:18px;z-index:20;
+  width:32px;height:32px;background:rgba(0,20,40,0.8);border:1px solid var(--border);
+  color:rgba(0,245,255,0.6);font-size:14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.2s;
+}
+.sound-btn:hover{border-color:var(--cyan);color:var(--cyan);}
+</style>
 </head>
 <body>
-    <h1>കേറിവാടാ മക്കളെ ,</h1>
 
-    <a href="/auth/google">
-        <button>Login with Google</button>
-    </a>
+<!-- ═══ LOADING SCREEN ═══ -->
+<div id="loader">
+  <div class="scanline-loader"></div>
+  <div class="loader-logo" id="loaderLogo">UNIT-0</div>
+  <div style="font-size:11px;letter-spacing:5px;color:rgba(0,245,255,0.4);margin-top:-10px;">ACCESS PORTAL INITIALIZING</div>
+  <div class="loader-bar-wrap"><div class="loader-bar" id="loaderBar"></div></div>
+  <div class="loader-text" id="loaderText">BOOTING KERNEL...</div>
+  <div class="loader-pct" id="loaderPct">0%</div>
+</div>
 
+<!-- ═══ MAIN PAGE ═══ -->
+<div id="main">
+  <canvas id="matrix"></canvas>
+  <div class="scanlines"></div>
+  <div class="grid-bg"></div>
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  <div class="corner tl"></div>
+  <div class="corner tr"></div>
+  <div class="corner bl"></div>
+  <div class="corner br"></div>
+  <div class="side-line l"></div>
+  <div class="side-line r"></div>
+
+  <!-- 3D Globe -->
+  <div id="globeWrap"><canvas id="globe" width="220" height="220"></canvas></div>
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <span><span class="pulse-dot"></span>SYSTEM ONLINE</span>
+    <span>SEC :: OAUTH 2.0 // TLS 1.3</span>
+    <span id="clock">--:--:--</span>
+  </div>
+
+  <!-- Sound toggle -->
+  <button class="sound-btn" id="soundBtn" title="Toggle Sound">🔊</button>
+
+  <!-- Scene -->
+  <div class="scene">
+
+    <!-- ROBOT -->
+    <div class="robot-wrap robot-float">
+      <svg width="230" height="330" viewBox="0 0 230 330" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+
+        <!-- Antenna -->
+        <g class="robot-body-group">
+          <line x1="115" y1="12" x2="115" y2="38" stroke="#00f5ff" stroke-width="2" filter="url(#glow)"/>
+          <circle cx="115" cy="9" r="5" fill="#00f5ff" class="antenna-blink" filter="url(#glow)"/>
+          <circle cx="115" cy="9" r="11" fill="none" stroke="#00f5ff" stroke-width="1" opacity="0.3">
+            <animate attributeName="r" values="6;16;6" dur="1.5s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0.5;0;0.5" dur="1.5s" repeatCount="indefinite"/>
+          </circle>
+
+          <!-- Head -->
+          <rect x="72" y="38" width="86" height="72" rx="8" fill="#041520" stroke="#00f5ff" stroke-width="1.5" filter="url(#glow)"/>
+          <polygon points="72,38 84,38 72,50" fill="#00f5ff" opacity="0.8"/>
+          <polygon points="158,38 146,38 158,50" fill="#00f5ff" opacity="0.8"/>
+
+          <!-- Eyes -->
+          <rect x="84" y="57" width="24" height="15" rx="3" fill="#000" stroke="#00f5ff" stroke-width="1"/>
+          <rect x="122" y="57" width="24" height="15" rx="3" fill="#000" stroke="#00f5ff" stroke-width="1"/>
+          <rect x="87" y="60" width="18" height="9" rx="2" fill="#00f5ff" class="eye-glow" opacity="0.7"/>
+          <rect x="125" y="60" width="18" height="9" rx="2" fill="#00f5ff" class="eye-glow" opacity="0.7" style="animation-delay:0.4s"/>
+
+          <!-- Mouth -->
+          <rect x="87" y="85" width="56" height="9" rx="2" fill="#000" stroke="rgba(0,245,255,0.4)" stroke-width="1"/>
+          <rect x="90" y="87" width="8" height="5" rx="1" fill="#00ff88" opacity="0.8"/>
+          <rect x="102" y="87" width="8" height="5" rx="1" fill="#00ff88" opacity="0.6"/>
+          <rect x="114" y="87" width="8" height="5" rx="1" fill="#00ff88" opacity="0.4"/>
+          <rect x="126" y="87" width="8" height="5" rx="1" fill="#ff003c" opacity="0.7">
+            <animate attributeName="opacity" values="0.3;1;0.3" dur="0.6s" repeatCount="indefinite"/>
+          </rect>
+
+          <!-- Neck -->
+          <rect x="104" y="110" width="22" height="16" rx="2" fill="#041520" stroke="rgba(0,245,255,0.3)" stroke-width="1"/>
+          <line x1="109" y1="112" x2="109" y2="123" stroke="rgba(0,245,255,0.5)" stroke-width="1"/>
+          <line x1="115" y1="112" x2="115" y2="123" stroke="rgba(0,245,255,0.5)" stroke-width="1"/>
+          <line x1="121" y1="112" x2="121" y2="123" stroke="rgba(0,245,255,0.5)" stroke-width="1"/>
+
+          <!-- Body -->
+          <rect x="57" y="126" width="116" height="105" rx="7" fill="#041520" stroke="#00f5ff" stroke-width="1.5"/>
+          <polygon points="57,126 73,126 57,142" fill="#00f5ff" opacity="0.6"/>
+          <polygon points="173,126 157,126 173,142" fill="#00f5ff" opacity="0.6"/>
+
+          <!-- Chest panel -->
+          <rect x="77" y="140" width="76" height="55" rx="4" fill="#000910" stroke="rgba(0,245,255,0.25)" stroke-width="1"/>
+          <!-- Power core -->
+          <circle cx="115" cy="162" r="18" fill="none" stroke="#00f5ff" stroke-width="1.5" opacity="0.5"/>
+          <circle cx="115" cy="162" r="13" fill="rgba(0,245,255,0.08)" stroke="#00f5ff" stroke-width="1">
+            <animate attributeName="r" values="10;15;10" dur="2s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite"/>
+          </circle>
+          <circle cx="115" cy="162" r="6" fill="#00f5ff" class="core-pulse"/>
+
+          <!-- Side lights -->
+          <rect x="63" y="145" width="9" height="5" rx="1" fill="#00ff88" opacity="0.8"/>
+          <rect x="63" y="154" width="9" height="5" rx="1" fill="#00ff88" opacity="0.6"/>
+          <rect x="63" y="163" width="9" height="5" rx="1" fill="#ff003c" opacity="0.7">
+            <animate attributeName="opacity" values="0.2;1;0.2" dur="0.8s" repeatCount="indefinite"/>
+          </rect>
+          <rect x="158" y="145" width="9" height="5" rx="1" fill="#00ff88" opacity="0.8"/>
+          <rect x="158" y="154" width="9" height="5" rx="1" fill="#00ff88" opacity="0.6"/>
+          <rect x="158" y="163" width="9" height="5" rx="1" fill="#ff003c" opacity="0.7">
+            <animate attributeName="opacity" values="0.2;1;0.2" dur="0.8s" repeatCount="indefinite" begin="0.4s"/>
+          </rect>
+
+          <!-- Arms -->
+          <g class="arm-l">
+            <rect x="18" y="128" width="34" height="82" rx="9" fill="#041520" stroke="rgba(0,245,255,0.5)" stroke-width="1.5"/>
+            <rect x="18" y="152" width="34" height="9" fill="rgba(0,245,255,0.08)" stroke="rgba(0,245,255,0.3)" stroke-width="1"/>
+            <rect x="15" y="210" width="40" height="24" rx="5" fill="#041520" stroke="#00f5ff" stroke-width="1.5"/>
+            <line x1="24" y1="210" x2="24" y2="220" stroke="rgba(0,245,255,0.5)" stroke-width="1.5"/>
+            <line x1="35" y1="210" x2="35" y2="220" stroke="rgba(0,245,255,0.5)" stroke-width="1.5"/>
+            <line x1="46" y1="210" x2="46" y2="220" stroke="rgba(0,245,255,0.5)" stroke-width="1.5"/>
+          </g>
+          <g class="arm-r">
+            <rect x="178" y="128" width="34" height="82" rx="9" fill="#041520" stroke="rgba(0,245,255,0.5)" stroke-width="1.5"/>
+            <rect x="178" y="152" width="34" height="9" fill="rgba(0,245,255,0.08)" stroke="rgba(0,245,255,0.3)" stroke-width="1"/>
+            <rect x="175" y="210" width="40" height="24" rx="5" fill="#041520" stroke="#00f5ff" stroke-width="1.5"/>
+            <line x1="184" y1="210" x2="184" y2="220" stroke="rgba(0,245,255,0.5)" stroke-width="1.5"/>
+            <line x1="195" y1="210" x2="195" y2="220" stroke="rgba(0,245,255,0.5)" stroke-width="1.5"/>
+            <line x1="206" y1="210" x2="206" y2="220" stroke="rgba(0,245,255,0.5)" stroke-width="1.5"/>
+          </g>
+
+          <!-- Legs -->
+          <g class="leg-l">
+            <rect x="74" y="231" width="36" height="72" rx="7" fill="#041520" stroke="rgba(0,245,255,0.5)" stroke-width="1.5"/>
+            <rect x="74" y="260" width="36" height="9" fill="rgba(0,245,255,0.08)" stroke="rgba(0,245,255,0.3)" stroke-width="1"/>
+            <rect x="70" y="303" width="44" height="20" rx="4" fill="#041520" stroke="#00f5ff" stroke-width="1.5"/>
+          </g>
+          <g class="leg-r">
+            <rect x="120" y="231" width="36" height="72" rx="7" fill="#041520" stroke="rgba(0,245,255,0.5)" stroke-width="1.5"/>
+            <rect x="120" y="260" width="36" height="9" fill="rgba(0,245,255,0.08)" stroke="rgba(0,245,255,0.3)" stroke-width="1"/>
+            <rect x="116" y="303" width="44" height="20" rx="4" fill="#041520" stroke="#00f5ff" stroke-width="1.5"/>
+          </g>
+        </g>
+      </svg>
+    </div>
+
+    <!-- LOGIN PANEL -->
+    <div class="panel">
+      <div class="ph">
+        <div class="sys-lbl">// AUTHENTICATION REQUIRED</div>
+        <div class="ptitle">ACCESS<span>_</span>PORTAL<span class="cursor-b"></span></div>
+      </div>
+      <div class="pb">
+        <div class="welcome">
+          <span class="tag">// MSG_RECV :: MALAYALAM_LOCALE</span>
+          കേറിവാടാ മക്കളേ
+        </div>
+        <div class="sbars">
+          <div class="sbar">
+            <span>ENCRYPTION</span>
+            <div class="track"><div class="fill" style="--w:100%;animation-delay:0.3s"></div></div>
+            <span class="val">AES-256</span>
+          </div>
+          <div class="sbar">
+            <span>FIREWALL</span>
+            <div class="track"><div class="fill" style="--w:88%;animation-delay:0.6s"></div></div>
+            <span class="val">ACTIVE</span>
+          </div>
+          <div class="sbar">
+            <span>OAUTH SRV</span>
+            <div class="track"><div class="fill" style="--w:100%;animation-delay:0.9s"></div></div>
+            <span class="val">READY</span>
+          </div>
+        </div>
+        <a href="/auth/google" class="gbtn" id="loginBtn">
+          <svg class="gico" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+          <span class="glitch-text">AUTHENTICATE VIA GOOGLE</span>
+        </a>
+      </div>
+      <div class="pf">
+        <span>VER 3.0.0</span>
+        <span>NODE:<span id="nodeid">----</span></span>
+        <span>SECURE</span>
+      </div>
+    </div>
+
+    <!-- RIGHT INFO -->
+    <div class="rinfo">
+      <div class="iblock">
+        <div class="ilbl">USERS ONLINE</div>
+        <div class="counter" id="ucnt">0</div>
+        <div class="ihex">SYS.ACTIVE</div>
+      </div>
+      <div class="iblock">
+        <div class="ilbl">PROTOCOL</div>
+        <div class="ival">OAUTH 2.0</div>
+        <div class="ihex">RFC 6749</div>
+      </div>
+      <div class="iblock">
+        <div class="ilbl">UPTIME</div>
+        <div class="ival" id="uptime">00:00:00</div>
+        <div class="ihex">0x<span id="uphex">000000</span></div>
+      </div>
+      <div class="iblock">
+        <div class="ilbl">THREAT LEVEL</div>
+        <div class="ival" style="color:var(--green)">MINIMAL</div>
+        <div class="ihex">STATUS: SAFE</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom ticker -->
+  <div class="bottombar">
+    <div class="ticker">
+      SYS: OPERATIONAL &nbsp;::&nbsp; OAUTH: /auth/google &nbsp;::&nbsp; TLS 1.3 ACTIVE &nbsp;::&nbsp; TOKENS: JWT-SIGNED &nbsp;::&nbsp; FIREWALL: ENABLED &nbsp;::&nbsp; INTRUSION DETECTION: ON &nbsp;::&nbsp; ALL NODES NOMINAL &nbsp;::&nbsp; UPLINK: STABLE &nbsp;::&nbsp;
+      SYS: OPERATIONAL &nbsp;::&nbsp; OAUTH: /auth/google &nbsp;::&nbsp; TLS 1.3 ACTIVE &nbsp;::&nbsp; TOKENS: JWT-SIGNED &nbsp;::&nbsp; FIREWALL: ENABLED &nbsp;::&nbsp; INTRUSION DETECTION: ON &nbsp;::&nbsp; ALL NODES NOMINAL &nbsp;::&nbsp; UPLINK: STABLE &nbsp;::&nbsp;
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════
+// AUDIO ENGINE (Web Audio API)
+// ══════════════════════════════
+const AC = new (window.AudioContext || window.webkitAudioContext)();
+let soundOn = true;
+document.getElementById('soundBtn').onclick = () => {
+  soundOn = !soundOn;
+  document.getElementById('soundBtn').textContent = soundOn ? '🔊' : '🔇';
+};
+function beep(freq=440, dur=0.08, type='square', vol=0.06, delay=0){
+  if(!soundOn) return;
+  try{
+    const o=AC.createOscillator(), g=AC.createGain();
+    o.connect(g);g.connect(AC.destination);
+    o.type=type;o.frequency.value=freq;
+    g.gain.setValueAtTime(vol,AC.currentTime+delay);
+    g.gain.exponentialRampToValueAtTime(0.001,AC.currentTime+delay+dur);
+    o.start(AC.currentTime+delay);o.stop(AC.currentTime+delay+dur+0.01);
+  }catch(e){}
+}
+function glitchSound(){
+  if(!soundOn) return;
+  [0,0.05,0.1,0.15].forEach((d,i)=>{
+    beep(80+Math.random()*400, 0.04, 'sawtooth', 0.04, d);
+  });
+}
+function bootBeeps(){
+  [440,550,660,880].forEach((f,i)=>beep(f,0.1,'square',0.05,i*0.12));
+}
+function loginHover(){
+  beep(800,0.05,'sine',0.04);
+  beep(1200,0.05,'sine',0.04,0.06);
+}
+function loginClick(){
+  [220,330,440,660,880,1100].forEach((f,i)=>beep(f,0.1,'sine',0.06,i*0.06));
+}
+
+// ══════════════════════════════
+// LOADER
+// ══════════════════════════════
+const steps=[
+  "BOOTING KERNEL...","LOADING DRIVERS...","INIT NETWORK STACK...",
+  "CONNECTING OAUTH SERVER...","VERIFYING CERTIFICATES...","SPAWNING ROBOT AI...",
+  "CALIBRATING SENSORS...","MATRIX RAIN ENABLED...","GLOBE RENDERING...","SYSTEM READY."
+];
+let pct=0, step=0;
+const bar=document.getElementById('loaderBar');
+const txt=document.getElementById('loaderText');
+const pctEl=document.getElementById('loaderPct');
+
+function loaderTick(){
+  if(pct>=100){
+    setTimeout(()=>{
+      document.getElementById('loader').classList.add('hide');
+      document.getElementById('main').classList.add('show');
+      initMatrix();initGlobe();bootBeeps();
+      setTimeout(glitchSound,500);
+    },400);
+    return;
+  }
+  const inc=Math.random()<0.3?Math.floor(Math.random()*12)+1:Math.floor(Math.random()*4)+1;
+  pct=Math.min(100,pct+inc);
+  bar.style.width=pct+'%';
+  pctEl.textContent=pct+'%';
+  if(step<steps.length && pct>=step*(100/steps.length)){
+    txt.textContent=steps[step++];
+    beep(200+step*80,0.05,'square',0.03);
+  }
+  setTimeout(loaderTick, 40+Math.random()*80);
+}
+setTimeout(loaderTick,600);
+
+// ══════════════════════════════
+// MATRIX RAIN (HEAVY)
+// ══════════════════════════════
+function initMatrix(){
+  const c=document.getElementById('matrix');
+  const ctx=c.getContext('2d');
+  c.width=window.innerWidth;c.height=window.innerHeight;
+  const chars='アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEF<>{}[]';
+  const cols=Math.floor(c.width/16);
+  const drops=Array(cols).fill(1).map(()=>Math.random()*-100);
+  const colors=['#00f5ff','#00ff88','#7b00ff','#ffffff'];
+
+  function draw(){
+    ctx.fillStyle='rgba(2,8,16,0.08)';
+    ctx.fillRect(0,0,c.width,c.height);
+    drops.forEach((y,i)=>{
+      const ch=chars[Math.floor(Math.random()*chars.length)];
+      const col=colors[Math.floor(Math.random()*colors.length)];
+      const bright=Math.random()>0.92;
+      ctx.fillStyle=bright?'#ffffff':col;
+      ctx.font=(bright?'bold ':'')+'14px Share Tech Mono';
+      ctx.globalAlpha=bright?1:0.4+Math.random()*0.4;
+      ctx.fillText(ch,i*16,y*16);
+      ctx.globalAlpha=1;
+      if(y*16>c.height && Math.random()>0.975) drops[i]=0;
+      drops[i]+=0.6+Math.random()*0.8;
+    });
+  }
+  setInterval(draw,28);
+  window.addEventListener('resize',()=>{c.width=window.innerWidth;c.height=window.innerHeight;});
+}
+
+// ══════════════════════════════
+// 3D GLOBE
+// ══════════════════════════════
+function initGlobe(){
+  const c=document.getElementById('globe');
+  const ctx=c.getContext('2d');
+  const W=220,H=220,R=90,cx=110,cy=110;
+  let rot=0;
+
+  // Lat/lon cities approx
+  const points=[
+    [51.5,-0.1],[40.7,-74],[35.6,139.7],[22.3,114.2],[28.6,77.2],
+    [-33.9,18.4],[55.7,37.6],[48.8,2.3],[37.7,-122.4],[-23.5,-46.6],
+    [10,77],[1.3,103.8],[31.2,121.5],[19.4,-99.1],[-34.6,-58.4],
+    [6.5,3.4],[41.0,29.0],[59.9,30.3],[45.4,-75.7],[52.5,13.4]
+  ];
+
+  function latLonToXYZ(lat,lon,r){
+    const phi=(90-lat)*Math.PI/180;
+    const theta=(lon+rot)*Math.PI/180;
+    return {
+      x:r*Math.sin(phi)*Math.cos(theta),
+      y:r*Math.cos(phi),
+      z:r*Math.sin(phi)*Math.sin(theta)
+    };
+  }
+
+  function drawGlobe(){
+    ctx.clearRect(0,0,W,H);
+
+    // Outer glow
+    const grad=ctx.createRadialGradient(cx,cy,R-10,cx,cy,R+20);
+    grad.addColorStop(0,'rgba(0,245,255,0.08)');
+    grad.addColorStop(1,'transparent');
+    ctx.fillStyle=grad;ctx.beginPath();ctx.arc(cx,cy,R+20,0,Math.PI*2);ctx.fill();
+
+    // Globe base
+    const base=ctx.createRadialGradient(cx-20,cy-20,10,cx,cy,R);
+    base.addColorStop(0,'rgba(0,30,60,0.9)');
+    base.addColorStop(1,'rgba(0,5,15,0.95)');
+    ctx.fillStyle=base;ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.fill();
+
+    // Latitude lines
+    for(let lat=-75;lat<=75;lat+=25){
+      const y3d=R*Math.sin(lat*Math.PI/180);
+      const r2d=Math.sqrt(R*R-y3d*y3d);
+      const screenY=cy-y3d;
+      ctx.beginPath();
+      ctx.ellipse(cx,screenY,r2d,r2d*0.18,0,0,Math.PI*2);
+      ctx.strokeStyle='rgba(0,245,255,0.12)';ctx.lineWidth=0.8;ctx.stroke();
+    }
+
+    // Longitude lines
+    for(let lon=0;lon<180;lon+=30){
+      ctx.beginPath();
+      for(let lat=-90;lat<=90;lat+=5){
+        const p=latLonToXYZ(lat,lon,R);
+        const x2=cx+p.x,y2=cy-p.y;
+        if(p.z>=0){lat===-90?ctx.moveTo(x2,y2):ctx.lineTo(x2,y2);}
+        else{ctx.moveTo(x2,y2);}
+      }
+      ctx.strokeStyle='rgba(0,245,255,0.1)';ctx.lineWidth=0.8;ctx.stroke();
+    }
+
+    // City dots
+    points.forEach(([lat,lon])=>{
+      const p=latLonToXYZ(lat,lon,R);
+      if(p.z<0) return;
+      const x2=cx+p.x,y2=cy-p.y;
+      const isSpecial=(Math.abs(lat-10)<5 && Math.abs(lon-77)<10);
+      ctx.beginPath();
+      ctx.arc(x2,y2,isSpecial?4:2,0,Math.PI*2);
+      ctx.fillStyle=isSpecial?'#00ff88':'rgba(0,245,255,0.8)';
+      ctx.fill();
+      if(isSpecial){
+        ctx.beginPath();ctx.arc(x2,y2,7,0,Math.PI*2);
+        ctx.strokeStyle='rgba(0,255,136,0.5)';ctx.lineWidth=1;ctx.stroke();
+      }
+    });
+
+    // Border ring
+    ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);
+    ctx.strokeStyle='rgba(0,245,255,0.5)';ctx.lineWidth=1.5;ctx.stroke();
+
+    // Shine
+    const shine=ctx.createRadialGradient(cx-30,cy-30,5,cx-20,cy-25,60);
+    shine.addColorStop(0,'rgba(255,255,255,0.06)');
+    shine.addColorStop(1,'transparent');
+    ctx.fillStyle=shine;ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.fill();
+
+    // Label
+    ctx.fillStyle='rgba(0,245,255,0.4)';
+    ctx.font='9px Share Tech Mono';
+    ctx.textAlign='center';
+    ctx.fillText('GLOBAL NETWORK',cx,cy+R+14);
+
+    rot+=0.4;
+    requestAnimationFrame(drawGlobe);
+  }
+  drawGlobe();
+}
+
+// ══════════════════════════════
+// HUD COUNTERS
+// ══════════════════════════════
+function updateClock(){
+  const n=new Date();
+  document.getElementById('clock').textContent=
+    String(n.getHours()).padStart(2,'0')+':'+
+    String(n.getMinutes()).padStart(2,'0')+':'+
+    String(n.getSeconds()).padStart(2,'0');
+}
+setInterval(updateClock,1000);updateClock();
+
+document.getElementById('nodeid').textContent=
+  Math.floor(Math.random()*0xFFFF).toString(16).toUpperCase().padStart(4,'0');
+
+let uc=0,tgt=Math.floor(Math.random()*600)+300;
+const uci=setInterval(()=>{
+  uc+=Math.ceil(tgt/50);
+  if(uc>=tgt){uc=tgt;clearInterval(uci);}
+  document.getElementById('ucnt').textContent=uc;
+},35);
+
+let sec=0;
+setInterval(()=>{
+  sec++;
+  const h=String(Math.floor(sec/3600)).padStart(2,'0');
+  const m=String(Math.floor((sec%3600)/60)).padStart(2,'0');
+  const s=String(sec%60).padStart(2,'0');
+  document.getElementById('uptime').textContent=h+':'+m+':'+s;
+  document.getElementById('uphex').textContent=sec.toString(16).toUpperCase().padStart(6,'0');
+},1000);
+
+// ══════════════════════════════
+// BUTTON SOUNDS
+// ══════════════════════════════
+const btn=document.getElementById('loginBtn');
+btn.addEventListener('mouseenter',()=>{ if(AC.state==='suspended')AC.resume(); loginHover(); });
+btn.addEventListener('click',(e)=>{ e.preventDefault(); loginClick(); glitchSound(); setTimeout(()=>window.location.href='/auth/google',500); });
+
+// Random glitch sounds
+setInterval(()=>{ if(Math.random()<0.15) glitchSound(); },8000);
+</script>
 </body>
 </html>
