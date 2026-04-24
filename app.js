@@ -19,14 +19,21 @@ connectDB();
 // express app
 const app = express();
 
+// application level middleware
+app.use(express.json());
+
+
 // test route
 // app.get("/",(req , res) => {
 //     res.send('server is live');
 // });
 
-app.post('/test',(req , res) => {
-    res.send('its works')
-    console.log(req.body)
+app.get('/users/:userId/posts/:postId',(req , res) => {
+    
+    const {userId , postId} = req.params;
+    const respond = Number(userId )+ Number(postId);
+    res.send(`its works', ${respond}`);
+    console.log(respond)
 })
 
 // port init
