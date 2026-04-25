@@ -6,6 +6,7 @@ const express = require("express");
 
 // local requirements
 const connectDB = require('./config/db');
+const authRoutes = require("./auth/auth");
 
 
 
@@ -28,6 +29,11 @@ app.set('view engine', 'ejs');
 
 // to access static files in public folder (middleware)
 app.use(express.static('public'));
+
+
+// route handlers
+app.use("/auth", authRoutes);
+
 
 
 // test route
