@@ -37,7 +37,7 @@ router.get("/google/callback", async (req, res) => {
         },
       }
     );
-
+    // show data
     console.log(userRes.data);
 
     res.send("Login Success");
