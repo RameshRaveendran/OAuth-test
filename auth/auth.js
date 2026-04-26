@@ -1,6 +1,33 @@
 const express = require("express");
 const router = express.Router();
 const axios = require("axios");
+const User = require('../models/user');
+
+router.get('/auth/google/callback', async (req, res) => {
+  try {
+    const { email, id } = userProfile; // from Google
+
+    // 1. Check existing user
+    let user = await User.findOne({ email });
+
+    // 2. If not exists → create
+    if (!user) {
+      user = await User.create({
+        email,
+        provider: 'google',
+        providerId: id
+      });
+    }
+
+    console.log("Logged in user:", user);
+
+    res.redirect('/dashboard');
+
+  } catch (err) {
+    console.log(err);
+    res.send("Error in login");
+  }
+});
 
 // STEP 1: Redirect to Google
 router.get("/google", (req, res) => {
