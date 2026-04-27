@@ -7,6 +7,7 @@ const session = require("express-session");
 // local requirements
 const connectDB = require("./config/db");
 const authRoutes = require("./auth/auth");
+const { isLoggedIn } = require('./auth/middleware');
 
 // db connection
 connectDB();
@@ -40,8 +41,14 @@ app.get("/", (req, res) => {
   res.render("login");
 });
 
-app.get("/dashboard", (req, res) => {
-  res.render("dashboard");
+
+app.get('/dashboard', isLoggedIn, (req, res) => {
+  res.render('dashboard', { user: req.session.user });
+});
+
+app.get('/logout', (req, res) => {
+  req.session.destroy();
+  res.redirect('/');
 });
 
 // app.get('/query',(req , res) => {
