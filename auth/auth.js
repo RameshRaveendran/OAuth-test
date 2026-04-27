@@ -56,7 +56,8 @@ router.get("/google/callback", async (req, res) => {
 
     console.log("Logged in user:", user);
 
-    
+    // session handle
+    req.session.user = user;
 
     // 4. Redirect
     res.redirect("/dashboard");
