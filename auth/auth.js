@@ -58,8 +58,11 @@ router.get("/google/callback", async (req, res) => {
 
   
 
-    // session handle
-    req.session.user = user;
+console.log("Before saving:", req.session);
+
+req.session.user = user;
+
+console.log("After saving:", req.session);
 
     // 4. Redirect
     res.redirect("/dashboard");

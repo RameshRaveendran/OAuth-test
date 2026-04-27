@@ -4,6 +4,8 @@ require("dotenv").config();
 // installed requirements
 const express = require("express");
 const session = require("express-session");
+const cookieParser = require('cookie-parser');
+
 // local requirements
 const connectDB = require("./config/db");
 const authRoutes = require("./auth/auth");
@@ -18,6 +20,10 @@ const app = express();
 // application level middleware
 app.use(express.json());
 
+
+app.use(cookieParser());
+
+
 // config of view engine
 app.set("view engine", "ejs");
 
@@ -25,13 +31,14 @@ app.set("view engine", "ejs");
 app.use(express.static("public"));
 
 // session creation
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-  }),
-);
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: false,   // IMPORTANT for localhost
+  }
+}));
 
 // route handlers
 app.use("/auth", authRoutes);
@@ -46,22 +53,11 @@ app.get('/dashboard', isLoggedIn, (req, res) => {
   res.render('dashboard', { user: req.session.user });
 });
 
+
 app.get('/logout', (req, res) => {
   req.session.destroy();
   res.redirect('/');
 });
-
-// app.get('/query',(req , res) => {
-
-//     const {userId , status} = req.query;
-//     // const respond = Number(userId )+ Number(postId);
-//     res.send(`its works poda pulle, user id is ${userId} , status ${status}`);
-//     console.log(userId , status)
-// });
-// app.get('/params/:id/name/:na',(req , res) => {
-//     res.send(req.params);
-//     console.log(req.params)
-// });
 
 // port init
 const PORT = process.env.PORT || 5000;
