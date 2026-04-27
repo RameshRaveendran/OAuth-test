@@ -110,5 +110,4 @@ npm run dev
 Ramesh (Learning by building 🚀)
 
 
-phase 5
-session/ jwt authenticaton
+phase 6
