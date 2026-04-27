@@ -42,8 +42,9 @@ app.get("/", (req, res) => {
 });
 
 
-app.get('/dashboard', isLoggedIn, (req, res) => {
-  res.render('dashboard', { user: req.session.user });
+app.get('/dashboard', (req, res) => {
+  console.log(req.session.user);
+  res.send("Dashboard");
 });
 
 app.get('/logout', (req, res) => {
