@@ -10,6 +10,8 @@ const cookieParser = require('cookie-parser');
 const connectDB = require("./config/db");
 const authRoutes = require("./auth/auth");
 const { isLoggedIn } = require('./auth/middleware');
+const noteRoutes = require('./notes/notes');
+
 
 // db connection
 connectDB();
@@ -42,6 +44,7 @@ app.use(session({
 
 // route handlers
 app.use("/auth", authRoutes);
+app.use('/notes', noteRoutes);
 
 // test route
 app.get("/", (req, res) => {
